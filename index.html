@@ -1833,8 +1833,10 @@ rows.push([
 document.getElementById("downloadDailyReportBtn")
   .addEventListener("click", () => downloadDemoReport("daily"));
 
+document.getElementById("downloadDailyReportBtn")
+  .addEventListener("click", () => downloadDemoReport("daily"));
+
 document.getElementById("downloadMonthlyReportBtn")
-  .addEventListener("click", () => downloadDemoReport("monthly"));
   .addEventListener("click", () => downloadDemoReport("monthly"));
 
 // Darshan Rides Firebase Service Worker
@@ -1850,9 +1852,6 @@ if ("serviceWorker" in navigator) {
 }
 
 // START
-loadVehicles();
-// START
-
 loadVehicles();
 // 📱 PUSH NOTIFICATION PERMISSION
 
