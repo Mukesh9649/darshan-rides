@@ -541,7 +541,23 @@ function startOwnerNotifications(user) {
   );
 }
 onAuthStateChanged(auth, (user) => {
+// 🔔 पुराने Notification Listener को बंद करें
+if (stopOwnerNotifications) {
+  stopOwnerNotifications();
+  stopOwnerNotifications = null;
+}
 
+const liveBox = document.getElementById("ownerLiveNotification");
+
+if (liveBox) {
+  liveBox.style.display = "none";
+  liveBox.textContent = "";
+}
+
+// 🔔 Login होने पर Notification शुरू करें
+if (user) {
+  startOwnerNotifications(user);
+  }
   const account =
     document.getElementById("myAccount");
 
