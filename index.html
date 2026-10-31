@@ -608,7 +608,22 @@ vehicleIds.forEach(vehicleId => {
     (bookingSnapshot) => {
 
       let count = 0;
+// 🔊 केवल नई Pending Booking आने पर Sound
+if (initializedBookingListeners.has(vehicleId)) {
 
+  const newPendingBooking = bookingSnapshot.docChanges().some(change =>
+    change.type === "added" &&
+    change.doc.data().status === "pending"
+  );
+
+  if (newPendingBooking) {
+    playBookingSound();
+  }
+
+} else {
+  // पहली बार पुरानी Bookings लोड होने पर Sound नहीं बजेगा
+  initializedBookingListeners.add(vehicleId);
+  }
       bookingSnapshot.forEach(item => {
         if (item.data().status === "pending") {
           count++;
