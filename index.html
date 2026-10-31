@@ -466,7 +466,13 @@ import {
   getFirestore, collection, getDocs, getDoc, addDoc, doc, updateDoc,
   setDoc, query, where, serverTimestamp, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+// 📱 Firebase Cloud Messaging
+import {
+  getMessaging,
+  getToken,
+  onMessage,
+  isSupported
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 import {
   getAuth,
   createUserWithEmailAndPassword,
