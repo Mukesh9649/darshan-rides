@@ -1,6 +1,12 @@
 // Darshan Rides Firebase Messaging Service Worker
-// Firebase Messaging setup अगले चरण में जोड़ा जाएगा।
 
-self.addEventListener("install", () => {
-  console.log("Darshan Rides Service Worker installed");
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"
+);
+
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"
+);
+
+// Firebase Configuration अगले चरण में जोड़ेंगे।
 });
