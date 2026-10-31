@@ -577,7 +577,8 @@ stopBookingListeners = [];
       const vehicleIds = snapshot.docs.map(item => item.id);
 // 🔔 Pending Booking Notification की तैयारी
 const pendingCounts = new Map();
-
+// 🔊 पहली बार पुरानी Bookings लोड होने पर आवाज नहीं बजेगी
+const initializedBookingListeners = new Set();
 vehicleIds.forEach(vehicleId => {
   pendingCounts.set(vehicleId, 0);
 });
