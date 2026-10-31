@@ -505,7 +505,8 @@ const ownerStatus =
   document.getElementById("ownerStatus");
 
 // AUTH STATE
-
+// 🔔 Owner Real-time Notification
+let stopOwnerNotifications = null;
 onAuthStateChanged(auth, (user) => {
 
   const account =
