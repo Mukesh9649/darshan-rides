@@ -527,7 +527,9 @@ function startOwnerNotifications(user) {
   stopOwnerNotifications = onSnapshot(
     vehicleQuery,
     (snapshot) => {
-
+// 🔔 गाड़ियों की सूची बदलने पर पुराने Booking Listeners बंद करें
+stopBookingListeners.forEach(stop => stop());
+stopBookingListeners = [];
       const vehicleIds = snapshot.docs.map(item => item.id);
 // 🔔 Pending Booking Notification की तैयारी
 const pendingCounts = new Map();
