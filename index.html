@@ -509,6 +509,50 @@ const ownerStatus =
 let stopOwnerNotifications = null;
   // 🔔 Booking Listeners को बंद करने के लिए
 let stopBookingListeners = [];
+  // 🔊 BOOKING NOTIFICATION SOUND
+let bookingAudioContext = null;
+
+function playBookingSound() {
+  try {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) return;
+
+    if (!bookingAudioContext) {
+      bookingAudioContext = new AudioContextClass();
+    }
+
+    if (bookingAudioContext.state === "suspended") {
+      bookingAudioContext.resume();
+    }
+
+    const oscillator = bookingAudioContext.createOscillator();
+    const gain = bookingAudioContext.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+
+    gain.gain.setValueAtTime(
+      0.15,
+      bookingAudioContext.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      bookingAudioContext.currentTime + 0.4
+    );
+
+    oscillator.connect(gain);
+    gain.connect(bookingAudioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(bookingAudioContext.currentTime + 0.4);
+
+  } catch (error) {
+    console.error("Notification Sound Error:", error);
+  }
+  }
   // 🔔 OWNER REAL-TIME LISTENER
 function startOwnerNotifications(user) {
 
