@@ -1855,6 +1855,7 @@ loadVehicles();
 
 loadVehicles();
 // 📱 PUSH NOTIFICATION PERMISSION
+
 document.getElementById("enablePushBtn")
 .addEventListener("click", async () => {
 
@@ -1866,20 +1867,22 @@ document.getElementById("enablePushBtn")
   }
 
   if (!("Notification" in window)) {
-    status.textContent =
-      "❌ यह Browser Notification सपोर्ट नहीं करता।";
+    status.textContent = "❌ Browser Notification सपोर्ट नहीं करता।";
     return;
   }
 
   try {
     const permission = await Notification.requestPermission();
 
-   if (permission === "granted") {
-  try {
+    if (permission !== "granted") {
+      status.textContent = "❌ Notification की अनुमति नहीं मिली।";
+      return;
+    }
+
     const supported = await isSupported();
 
     if (!supported) {
-      status.textContent = "❌ Browser Push Notification सपोर्ट नहीं करता।";
+      status.textContent = "❌ Push Notification सपोर्ट नहीं है।";
       return;
     }
 
@@ -1903,12 +1906,9 @@ document.getElementById("enablePushBtn")
 
   } catch (error) {
     status.textContent = "❌ Error: " + error.message;
-    console.error(error);
+    console.error("Push Notification Error:", error);
   }
 
-} else {
-  status.textContent = "❌ Notification की अनुमति नहीं मिली।";
-   } 
 });
 // MOBILE OTP LOGIN
 
