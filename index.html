@@ -553,7 +553,9 @@ if (stopOwnerNotifications) {
   stopOwnerNotifications();
   stopOwnerNotifications = null;
 }
-
+// 🔔 पुराने Booking Listeners बंद करें
+stopBookingListeners.forEach(stop => stop());
+stopBookingListeners = [];
 const liveBox = document.getElementById("ownerLiveNotification");
 
 if (liveBox) {
