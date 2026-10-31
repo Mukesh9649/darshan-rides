@@ -507,6 +507,8 @@ const ownerStatus =
 // AUTH STATE
 // 🔔 Owner Real-time Notification
 let stopOwnerNotifications = null;
+  // 🔔 Booking Listeners को बंद करने के लिए
+let stopBookingListeners = [];
   // 🔔 OWNER REAL-TIME LISTENER
 function startOwnerNotifications(user) {
 
