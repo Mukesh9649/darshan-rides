@@ -537,6 +537,52 @@ const pendingCounts = new Map();
 vehicleIds.forEach(vehicleId => {
   pendingCounts.set(vehicleId, 0);
 });
+      // 🔔 REAL-TIME BOOKING NOTIFICATION
+function updateNotification() {
+  const totalPending = [...pendingCounts.values()]
+    .reduce((sum, count) => sum + count, 0);
+
+  box.textContent = totalPending > 0
+    ? "🔔 आपके पास " + totalPending + " Pending Bookings हैं!"
+    : "✅ अभी कोई Pending Booking नहीं है।";
+}
+
+if (vehicleIds.length === 0) {
+  box.textContent = "🚗 आपकी कोई Approved गाड़ी नहीं है।";
+}
+
+vehicleIds.forEach(vehicleId => {
+
+  const bookingQuery = query(
+    collection(db, "bookings"),
+    where("vehicleId", "==", vehicleId)
+  );
+
+  const stop = onSnapshot(
+    bookingQuery,
+    (bookingSnapshot) => {
+
+      let count = 0;
+
+      bookingSnapshot.forEach(item => {
+        if (item.data().status === "pending") {
+          count++;
+        }
+      });
+
+      pendingCounts.set(vehicleId, count);
+      updateNotification();
+    },
+    (error) => {
+      console.error(error);
+      box.textContent =
+        "❌ Booking Notification Error: " +
+        (error.code || error.message);
+    }
+  );
+
+  stopBookingListeners.push(stop);
+});
       box.textContent =
         "🚗 आपकी " + vehicleIds.length +
         " Approved गाड़ियाँ मिली हैं।";
