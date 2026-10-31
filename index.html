@@ -1835,6 +1835,22 @@ document.getElementById("downloadDailyReportBtn")
 
 document.getElementById("downloadMonthlyReportBtn")
   .addEventListener("click", () => downloadDemoReport("monthly"));
+  .addEventListener("click", () => downloadDemoReport("monthly"));
+
+// Darshan Rides Firebase Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/darshan-rides/firebase-messaging-sw.js")
+    .then((registration) => {
+      console.log("✅ Service Worker Registered", registration);
+    })
+    .catch((error) => {
+      console.error("❌ Service Worker Error:", error);
+    });
+}
+
+// START
+loadVehicles();
 // START
 
 loadVehicles();
