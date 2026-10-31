@@ -1838,7 +1838,38 @@ document.getElementById("downloadMonthlyReportBtn")
 // START
 
 loadVehicles();
+// 📱 PUSH NOTIFICATION PERMISSION
+document.getElementById("enablePushBtn")
+.addEventListener("click", async () => {
 
+  const status = document.getElementById("pushStatus");
+
+  if (!auth.currentUser) {
+    status.textContent = "❌ पहले Login करें।";
+    return;
+  }
+
+  if (!("Notification" in window)) {
+    status.textContent =
+      "❌ यह Browser Notification सपोर्ट नहीं करता।";
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+
+    if (permission === "granted") {
+      status.textContent =
+        "✅ Notification की अनुमति मिल गई है।";
+    } else {
+      status.textContent =
+        "❌ Notification की अनुमति नहीं मिली।";
+    }
+
+  } catch (error) {
+    status.textContent = "❌ Error: " + error.message;
+  }
+});
 // MOBILE OTP LOGIN
 
 let confirmationResult = null;
