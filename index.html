@@ -507,6 +507,39 @@ const ownerStatus =
 // AUTH STATE
 // 🔔 Owner Real-time Notification
 let stopOwnerNotifications = null;
+  // 🔔 OWNER REAL-TIME LISTENER
+function startOwnerNotifications(user) {
+
+  const box = document.getElementById("ownerLiveNotification");
+
+  if (!box || !user) return;
+
+  box.style.display = "block";
+  box.textContent = "🔔 नई Bookings की जाँच हो रही है...";
+
+  const vehicleQuery = query(
+    collection(db, "vehicles"),
+    where("ownerId", "==", user.uid)
+  );
+
+  stopOwnerNotifications = onSnapshot(
+    vehicleQuery,
+    (snapshot) => {
+
+      const vehicleIds = snapshot.docs.map(item => item.id);
+
+      box.textContent =
+        "🚗 आपकी " + vehicleIds.length +
+        " Approved गाड़ियाँ मिली हैं।";
+
+    },
+    (error) => {
+      console.error(error);
+      box.textContent =
+        "❌ Notification Error: " + (error.code || error.message);
+    }
+  );
+}
 onAuthStateChanged(auth, (user) => {
 
   const account =
