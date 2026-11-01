@@ -2392,6 +2392,21 @@ document.getElementById("calculateFareBtn")
 
 });
 </script>
+<!-- OneSignal Push Notification -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 
+<script>
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: "53cf96e4-92e3-4f44-ba5a-31aa6dadb711",
+    serviceWorkerPath: "/darshan-rides/OneSignalSDKWorker.js",
+    serviceWorkerParam: {
+      scope: "/darshan-rides/"
+    }
+  });
+});
+</script>
 </body>
 </html>
