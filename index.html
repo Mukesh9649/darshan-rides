@@ -1508,6 +1508,31 @@ card.appendChild(confirmation);
                 doc(db, "bookings", item.id),
                 { status: decision }
               );
+      // SAVE OWNER PHONE WHEN OWNER ACCEPTS BOOKING
+if (decision === "approved") {
+
+  const vehicleSnap = await getDoc(
+    doc(db, "vehicles", data.vehicleId)
+  );
+
+  if (!vehicleSnap.exists()) {
+    throw new Error("Vehicle record not found");
+  }
+
+  const ownerPhone = vehicleSnap.data().ownerPhone;
+
+  if (!/^[6-9][0-9]{9}$/.test(ownerPhone || "")) {
+    throw new Error("Owner phone number invalid");
+  }
+
+  await setDoc(
+    doc(db, "bookingContacts", item.id),
+    {
+      ownerPhone: ownerPhone
+    },
+    { merge: true }
+  );
+}        
 // SAVE OWNER PHONE AFTER BOOKING APPROVAL
 if (decision === "approved") {
 
