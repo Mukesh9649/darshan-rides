@@ -2163,7 +2163,14 @@ let pendingBookings = 0;
         collection(db, "bookings"),
         where("vehicleId", "==", vehicleId)
       );
+const ownedVehicle = vehicleSnapshot.docs.find(
+  vehicleDoc => vehicleDoc.id === vehicleId &&
+  vehicleDoc.data().ownerId === user.uid
+);
 
+if (!ownedVehicle) {
+  continue;
+}
       const bookingSnapshot = await getDocs(bookingQuery);
 
       bookingSnapshot.forEach(item => {
