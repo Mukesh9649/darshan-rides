@@ -2303,7 +2303,9 @@ notification.textContent = pendingBookings > 0
 
 box.prepend(notification);
     if (totalBookings === 0) {
-      box.textContent = "अभी आपकी गाड़ियों की कोई Booking नहीं है।";
+  const noBookings = document.createElement("p");
+  noBookings.textContent = "अभी आपकी गाड़ियों की कोई Booking नहीं है।";
+  box.appendChild(noBookings);
     }
 
   } catch (error) {
