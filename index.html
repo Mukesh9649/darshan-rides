@@ -1392,26 +1392,29 @@ if (data.status === "approved") {
        phoneInfo.textContent =
   "📞 गाड़ी मालिक का मोबाइल नंबर: " + ownerPhone;
 
-// CUSTOMER CALL OWNER BUTTON
-const callBtn = document.createElement("a");
+// CUSTOMER PHONE AND CALL BUTTON
+if (/^[6-9][0-9]{9}$/.test(customerPhone || "")) {
 
-callBtn.href = "tel:+91" + ownerPhone;
-callBtn.textContent = "📞 Call Now";
+  phoneInfo.textContent =
+    "📞 ग्राहक का मोबाइल नंबर: " + customerPhone;
 
-callBtn.style.padding = "12px 18px";
-callBtn.style.background = "#ff8c00";
-callBtn.style.color = "white";
-callBtn.style.borderRadius = "8px";
-callBtn.style.textDecoration = "none";
-callBtn.style.margin = "10px";
-callBtn.style.setProperty("display", "inline-block", "important");
+  const callBtn = document.createElement("a");
+  callBtn.href = "tel:+91" + customerPhone;
+  callBtn.textContent = "📞 ग्राहक को Call करें";
 
-card.appendChild(callBtn);
+  callBtn.style.display = "inline-block";
+  callBtn.style.padding = "12px 18px";
+  callBtn.style.background = "#ff8c00";
+  callBtn.style.color = "white";
+  callBtn.style.borderRadius = "8px";
+  callBtn.style.textDecoration = "none";
+
+  card.appendChild(callBtn);
 
 } else {
   phoneInfo.textContent =
-    "📞 मालिक का नंबर उपलब्ध नहीं है।";
-      } 
+    "📞 ग्राहक का नंबर उपलब्ध नहीं है।";
+}
 
     })
     .catch((error) => {
