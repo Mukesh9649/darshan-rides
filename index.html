@@ -1252,17 +1252,18 @@ document.getElementById("loadRequestsBtn")
 
               if (decision === "approved") {
 
-                await setDoc(
+        await setDoc(
   doc(db, "vehicles", item.id),
   {
     ownerId: data.ownerId,
     ownerName: data.ownerName,
+    ownerPhone: data.ownerPhone,
     vehicleName: data.vehicleName,
     vehicleType: data.vehicleType,
     city: data.city,
     pricePerKm: data.pricePerKm
   }
-);
+);    
               }
 
               await updateDoc(
