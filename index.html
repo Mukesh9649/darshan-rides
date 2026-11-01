@@ -1897,9 +1897,16 @@ document.getElementById("enablePushBtn")
     });
 
     if (token) {
-      status.textContent = "✅ Push Notification Token मिल गया!";
-      console.log("FCM Token:", token);
-    } else {
+  await setDoc(doc(db, "adminPushTokens", auth.currentUser.uid), {
+    uid: auth.currentUser.uid,
+    token: token,
+    updatedAt: serverTimestamp()
+  });
+
+  status.textContent = "✅ Admin Token Firebase में सेव हो गया!";
+  console.log("FCM Token:", token);
+    }
+    else {
       status.textContent = "❌ Token नहीं मिला।";
     }
 
