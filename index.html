@@ -1881,8 +1881,8 @@ if ("serviceWorker" in navigator) {
 loadVehicles();
 // 📱 PUSH NOTIFICATION PERMISSION
 
-document.getElementById("enablePushBtn")
-.addEventListener("click", async () => {
+const enablePushBtn = document.getElementById("enablePushBtn");
+if (enablePushBtn) enablePushBtn.addEventListener("click", async () => {
 
   const status = document.getElementById("pushStatus");
 
