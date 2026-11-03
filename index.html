@@ -617,8 +617,8 @@ vehicleIds.forEach(vehicleId => {
 });
       // 🔔 REAL-TIME BOOKING NOTIFICATION
 function updateNotification() {
-  const totalPending = [...pendingCounts.values()]
-      .reduce((sum, count) => sum + count, 0);
+    const totalPending = [...pendingCounts.values()]
+    .reduce((sum, count) => sum + count, 0);
 
   box.textContent = totalPending > 0
     ? "🔔 आपके पास " + totalPending + " Pending Bookings हैं!"
@@ -1104,218 +1104,235 @@ document.getElementById("showAllBtn")
   loadVehicles();
 
 });
-    }
 
-  const today = new Date();
-
-  const snapshot = await getDocs(
-    collection(db, "demoPayments")
-  );
-
-  const rows = [
-    ["Booking ID", "Total Fare", "Advance", "Remaining", "Payment Status"]
-  ];
-
-  snapshot.forEach(item => {
-    const data = item.data();
-
-    if (data.paymentMode !== "demo") return;
-
-    const date = data.createdAt?.toDate
-      ? data.createdAt.toDate()
-      : null;
-
-    if (period === "daily" && date) {
-      if (date.toDateString() !== today.toDateString()) return;
-    }
-
-    if (period === "monthly" && date) {
-      if (
-        date.getMonth() !== today.getMonth() ||
-        date.getFullYear() !== today.getFullYear()
-      ) return;
-    }
-
-    rows.push([
-      data.bookingId || "",
-      data.totalFare || 0,
-      data.advanceAmount || 0,
-      data.remainingAmount || 0,
-      data.paymentStatus || ""
-    ]);
-  });
-
-  const csv = rows.map(row =>
-    row.map(value =>
-      '"' + String(value).replace(/"/g, '""') + '"'
-    ).join(",")
-  ).join("\n");
-
-  const blob = new Blob(
-    ["\uFEFF" + csv],
-    { type: "text/csv;charset=utf-8;" }
-  );
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download =
-    period === "daily"
-      ? "Darshan-Rides-Daily-Demo-Report.csv"
-      : "Darshan-Rides-Monthly-Demo-Report.csv";
-
-  link.click();
-
-  URL.revokeObjectURL(url);
-}
-
-document.getElementById("downloadDailyReportBtn")
-.addEventListener("click", () => {
-  downloadDemoReport("daily").catch(error => {
-    alert("❌ Report Error: " + error.message);
-  });
-});
-
-document.getElementById("downloadMonthlyReportBtn")
-.addEventListener("click", () => {
-  downloadDemoReport("monthly").catch(error => {
-    alert("❌ Report Error: " + error.message);
-  });
-});
 // OWNER REGISTRATION
 
 document.getElementById("registerVehicleBtn")
 .addEventListener("click", async () => {
+const ownerPhone =
+  document.getElementById("ownerPhone").value.trim();
 
+if (!/^[6-9][0-9]{9}$/.test(ownerPhone)) {
+  ownerStatus.textContent =
+    "❌ सही 10 अंकों का मोबाइल नंबर भरें।";
+  return;
+  }
   const user = auth.currentUser;
 
   if (!user) {
-    ownerStatus.textContent = "❌ पहले Login करें।";
+    ownerStatus.textContent =
+      "❌ पहले Login करें।";
     return;
   }
 
-  const name = document.getElementById("ownerName").value.trim();
-  const phone = document.getElementById("ownerPhone").value.trim();
-  const city = document.getElementById("ownerCity").value.trim();
-  const type = document.getElementById("ownerVehicleType").value;
-  const vehicleName = document.getElementById("ownerVehicleName").value.trim();
-  const price = Number(document.getElementById("ownerPrice").value);
+  const ownerName =
+    document.getElementById("ownerName").value.trim();
 
-  if (!name || !/^[6-9][0-9]{9}$/.test(phone) ||
-      !city || !type || !vehicleName || price <= 0) {
-    ownerStatus.textContent = "❌ सभी जानकारी सही भरें।";
+  const city =
+    document.getElementById("ownerCity").value.trim();
+
+  const vehicleType =
+    document.getElementById("ownerVehicleType").value;
+
+  const vehicleName =
+    document.getElementById("ownerVehicleName").value.trim();
+
+  const pricePerKm =
+    Number(document.getElementById("ownerPrice").value);
+
+  if (
+    !ownerName ||
+    !city ||
+    !vehicleType ||
+    !vehicleName ||
+    !Number.isFinite(pricePerKm) ||
+    pricePerKm <= 0 ||
+    pricePerKm > 100000 ||
+    ownerName.length > 100 ||
+    city.length > 100 ||
+    vehicleName.length > 100
+  ) {
+    ownerStatus.textContent =
+      "❌ सभी जानकारी सही भरें।";
     return;
   }
 
-  ownerStatus.textContent = "गाड़ी रजिस्टर हो रही है...";
+  ownerStatus.textContent =
+    "आवेदन जमा हो रहा है...";
 
   try {
-    await addDoc(collection(db, "vehicles"), {
-      ownerId: user.uid,
-      ownerName: name,
-      ownerPhone: phone,
-      city: city,
-      vehicleType: type,
-      vehicleName: vehicleName,
-      pricePerKm: price,
-      available: true,
-      status: "pending",
-      createdAt: serverTimestamp()
-    });
+
+    await addDoc(
+      collection(db, "vehicleRequests"),
+      {
+        ownerId: user.uid,
+        ownerName: ownerName,
+        ownerPhone: ownerPhone,
+        city: city,
+        vehicleType: vehicleType,
+        vehicleName: vehicleName,
+        pricePerKm: pricePerKm,
+        status: "pending"
+      }
+    );
 
     ownerStatus.textContent =
-      "✅ गाड़ी का आवेदन जमा हो गया। Admin की मंजूरी का इंतजार करें।";
+      "✅ आवेदन जमा हो गया! एडमिन की मंजूरी बाकी है।";
 
   } catch (error) {
+
+    console.error(error);
+
     ownerStatus.textContent =
-      "❌ Error: " + (error.code || error.message);
+      "❌ Error: " +
+      (error.code || error.message);
+
   }
 
 });
 
-// ADMIN PANEL - OWNER REQUESTS
+// ADMIN PANEL
 
 document.getElementById("loadRequestsBtn")
 .addEventListener("click", async () => {
 
-  const box = document.getElementById("adminRequests");
+  const box =
+    document.getElementById("adminRequests");
+
   const user = auth.currentUser;
 
   if (!user || user.uid !== ADMIN_UID) {
-    box.textContent = "❌ केवल Admin देख सकता है।";
+    box.textContent =
+      "❌ केवल Admin आवेदन देख सकता है।";
     return;
   }
 
   box.textContent = "आवेदन लोड हो रहे हैं...";
 
   try {
-    const snapshot = await getDocs(collection(db, "vehicles"));
+
+    const snapshot = await getDocs(
+      collection(db, "vehicleRequests")
+    );
+
     box.replaceChildren();
 
-    snapshot.forEach(item => {
-      const data = item.data();
+    if (snapshot.empty) {
+      box.textContent =
+        "अभी कोई आवेदन नहीं है।";
+      return;
+    }
 
-      if (data.status !== "pending") return;
+    snapshot.forEach((item) => {
+
+      const data = item.data();
 
       const card = document.createElement("div");
       card.className = "vehicle-card";
 
       const details = document.createElement("p");
+
       details.textContent =
-        "मालिक: " + (data.ownerName || "") +
-        " | फोन: " + (data.ownerPhone || "") +
-        " | शहर: " + (data.city || "") +
-        " | गाड़ी: " + (data.vehicleName || "") +
-        " | प्रकार: " + (data.vehicleType || "") +
-        " | किराया: ₹" + (data.pricePerKm || 0) + "/KM";
+        `${data.ownerName || ""} | ` +
+        `${data.city || ""} | ` +
+        `${data.vehicleType || ""} | ` +
+        `${data.vehicleName || ""} | ` +
+        `₹${data.pricePerKm ?? 0}/km | ` +
+                `${data.status || ""}`;
 
-      const approve = document.createElement("button");
-      approve.textContent = "✅ Approve";
+      card.appendChild(details);
 
-      approve.addEventListener("click", async () => {
-        try {
-          await updateDoc(doc(db, "vehicles", item.id), {
-            status: "approved",
-            available: true
+      if (data.status === "pending") {
+
+        ["approved", "rejected"].forEach((decision) => {
+
+          const button =
+            document.createElement("button");
+
+          button.textContent =
+            decision === "approved"
+            ? "✅ Approve"
+            : "❌ Reject";
+
+          button.addEventListener("click", async () => {
+
+            const buttons =
+              card.querySelectorAll("button");
+
+            buttons.forEach(btn => {
+              btn.disabled = true;
+            });
+
+            try {
+
+              if (decision === "approved") {
+await setDoc(
+  doc(db, "vehicles", item.id),
+  {
+    ownerId: data.ownerId,
+    ownerName: data.ownerName,
+    vehicleName: data.vehicleName,
+    vehicleType: data.vehicleType,
+    city: data.city,
+    pricePerKm: data.pricePerKm,
+    available: true
+  }
+);
+
+              }
+
+              await updateDoc(
+                doc(db, "vehicleRequests", item.id),
+                {
+                  status: decision
+                }
+              );
+
+              details.textContent +=
+                " | नया Status: " + decision;
+
+              buttons.forEach(btn => btn.remove());
+
+              if (decision === "approved") {
+                loadVehicles();
+              }
+
+            } catch (error) {
+
+              alert(
+                "❌ Error: " +
+                (error.code || error.message)
+              );
+
+              buttons.forEach(btn => {
+                btn.disabled = false;
+              });
+
+            }
+
           });
 
-          card.remove();
-          alert("✅ गाड़ी Approve हो गई!");
+          card.appendChild(button);
 
-        } catch (error) {
-          alert("❌ " + (error.code || error.message));
-        }
-      });
+        });
 
-      const reject = document.createElement("button");
-      reject.textContent = "❌ Reject";
+      }
 
-      reject.addEventListener("click", async () => {
-        try {
-          await updateDoc(doc(db, "vehicles", item.id), {
-            status: "rejected",
-            available: false
-          });
-
-          card.remove();
-          alert("❌ आवेदन Reject कर दिया गया।");
-
-        } catch (error) {
-          alert("❌ " + (error.code || error.message));
-        }
-      });
-
-      card.append(details, approve, reject);
       box.appendChild(card);
+
     });
 
   } catch (error) {
-    box.textContent = "❌ Error: " + (error.code || error.message);
+
+    console.error(error);
+
+    box.textContent =
+      "❌ Error: " +
+      (error.code || error.message);
+
   }
 
 });
-
 // CUSTOMER BOOKING HISTORY
 
 document.getElementById("myBookingsBtn")
@@ -1329,20 +1346,20 @@ document.getElementById("myBookingsBtn")
     return;
   }
 
-  box.textContent = "आपकी Bookings लोड हो रही हैं...";
+  box.textContent = "बुकिंग लोड हो रही है...";
 
   try {
-    const snapshot = await getDocs(
-      query(
-        collection(db, "bookings"),
-        where("customerId", "==", user.uid)
-      )
+    const q = query(
+      collection(db, "bookings"),
+      where("customerId", "==", user.uid)
     );
+
+    const snapshot = await getDocs(q);
 
     box.replaceChildren();
 
     if (snapshot.empty) {
-      box.textContent = "अभी आपकी कोई Booking नहीं है।";
+      box.textContent = "अभी आपकी कोई बुकिंग नहीं है।";
       return;
     }
 
@@ -1352,75 +1369,92 @@ document.getElementById("myBookingsBtn")
       const card = document.createElement("div");
       card.className = "vehicle-card";
 
-      const details = document.createElement("p");
-      details.textContent =
-        "गाड़ी: " + (data.vehicleName || "") +
-        " | Pickup: " + (data.pickup || "") +
-        " | Drop: " + (data.drop || "") +
-        " | किराया: ₹" + (data.totalFare || 0) +
-        " | Status: " + (data.status || "pending");
+      card.textContent =
+  "🚗 गाड़ी: " + (data.vehicleName || "गाड़ी") +
+  " | 📍 Pickup: " + (data.pickup || "") +
+  " | 🏁 Drop: " + (data.drop || "") +
+  " | 📏 दूरी: " +
+  (data.distanceKm != null
+    ? data.distanceKm + " KM"
+    : "उपलब्ध नहीं") +
+  " | 💰 कुल किराया: " +
+  (data.totalFare != null
+    ? "₹" + Number(data.totalFare).toFixed(2)
+    : "उपलब्ध नहीं") +
+  " | Status: " + (data.status || "pending");
 
-      card.appendChild(details);
       box.appendChild(card);
-    });
-
-  } catch (error) {
-    box.textContent = "❌ Error: " + (error.code || error.message);
-  }
-
-});
 
 // CUSTOMER LIVE DRIVER TRACKING
-
-document.getElementById("myBookingsBtn")
-.addEventListener("click", async () => {
-
-  const box = document.getElementById("myBookingsList");
-  const user = auth.currentUser;
-
-  if (!user) return;
-
-  try {
-    const snapshot = await getDocs(
-      query(
-        collection(db, "bookings"),
-        where("customerId", "==", user.uid)
-      )
-    );
-
-    snapshot.forEach(item => {
-      const data = item.data();
-
-      if (data.status !== "approved") return;
-
-      const trackButton = document.createElement("button");
-      trackButton.textContent = "📍 Driver Live Location देखें";
-
-      trackButton.addEventListener("click", () => {
-        const url =
-          "https://www.google.com/maps?q=" +
-          data.driverLatitude + "," + data.driverLongitude;
-
-        if (
-          Number.isFinite(data.driverLatitude) &&
-          Number.isFinite(data.driverLongitude)
-        ) {
-          window.open(url, "_blank");
-        } else {
-          alert("अभी Driver की Live Location उपलब्ध नहीं है।");
-        }
-      });
-
-      box.appendChild(trackButton);
-    });
-
-  } catch (error) {
-    console.error(error);
-  }
-
-});
+if (data.status === "approved") {
+  const trackLink = document.createElement("a");
+  trackLink.textContent = "📍 ड्राइवर की Live Location देखें";
+  trackLink.target = "_blank";
+  trackLink.rel = "noopener";
+  trackLink.style.display = "inline-block";
+  trackLink.style.padding = "12px";
+  trackLink.style.margin = "8px";
+  trackLink.style.background = "#173b73";
+  trackLink.style.color = "white";
+  trackLink.style.borderRadius = "8px";
+  trackLink.style.textDecoration = "none";
+  trackLink.href = "#";
+  card.appendChild(trackLink);
+  onSnapshot(doc(db, "bookings", item.id), (liveDoc) => {
+    if (!liveDoc.exists()) return;
+    const live = liveDoc.data();
+    if (Number.isFinite(live.driverLatitude) && Number.isFinite(live.driverLongitude)) {
+      trackLink.href = `https://www.google.com/maps?q=${live.driverLatitude},${live.driverLongitude}`;
+      trackLink.textContent = "📍 ड्राइवर की Live Location देखें (अपडेट हो रही है)";
+    } else {
+      trackLink.removeAttribute("href");
+      trackLink.textContent = "⏳ ड्राइवर ने अभी Live GPS चालू नहीं किया है।";
+    }
+  }, (error) => console.error("Live tracking error", error));
+}
 
 // SHOW OWNER PHONE ONLY AFTER APPROVAL
+if (data.status === "approved") {
+  const phoneInfo = document.createElement("p");
+  phoneInfo.textContent = "📞 मालिक का नंबर लोड हो रहा है...";
+  card.appendChild(phoneInfo);
+  getDoc(doc(db, "bookingContacts", item.id))
+    .then((contactSnap) => {
+      if (!contactSnap.exists()) {
+        phoneInfo.textContent = "📞 मालिक का नंबर उपलब्ध नहीं है।";
+        return;
+      }
+      const ownerPhone = contactSnap.data().ownerPhone;
+      if (/^[6-9][0-9]{9}$/.test(ownerPhone || "")) {
+        phoneInfo.textContent = "📞 गाड़ी मालिक का मोबाइल नंबर: " + ownerPhone;
+        const callBtn = document.createElement("a");
+        callBtn.href = "tel:+91" + ownerPhone;
+        callBtn.textContent = "📞 मालिक को Call करें";
+        callBtn.style.display = "inline-block";
+        callBtn.style.padding = "12px 18px";
+        callBtn.style.background = "#ff8c00";
+        callBtn.style.color = "white";
+        callBtn.style.borderRadius = "8px";
+        callBtn.style.textDecoration = "none";
+        card.appendChild(callBtn);
+      } else {
+        phoneInfo.textContent = "📞 मालिक का नंबर उपलब्ध नहीं है।";
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      phoneInfo.textContent = "❌ मोबाइल नंबर नहीं दिख सका: " + (error.code || error.message);
+    });
+}
+
+  }); // snapshot.forEach समाप्त
+
+  } catch (error) {
+    box.textContent =
+      "❌ Error: " + (error.code || error.message);
+  }
+});
+
 
 // ADMIN BOOKING MANAGEMENT
 
@@ -1435,10 +1469,11 @@ document.getElementById("adminBookingsBtn")
     return;
   }
 
-  box.textContent = "Bookings लोड हो रही हैं...";
+  box.textContent = "बुकिंग लोड हो रही हैं...";
 
   try {
     const snapshot = await getDocs(collection(db, "bookings"));
+
     box.replaceChildren();
 
     if (snapshot.empty) {
@@ -1453,25 +1488,130 @@ document.getElementById("adminBookingsBtn")
       card.className = "vehicle-card";
 
       const details = document.createElement("p");
+
       details.textContent =
-        "गाड़ी: " + (data.vehicleName || "") +
+        "🚗 " + (data.vehicleName || "गाड़ी") +
         " | Pickup: " + (data.pickup || "") +
         " | Drop: " + (data.drop || "") +
-        " | ग्राहक UID: " + (data.customerId || "") +
-        " | Status: " + (data.status || "");
+        " | Status: " + (data.status || "pending");
+// BOOKING CONFIRMATION MESSAGE
+const confirmation = document.createElement("p");
 
+if (data.status === "approved") {
+  confirmation.textContent =
+    "🎉 बधाई हो! आपकी Booking Confirm हो गई है।";
+  confirmation.style.color = "green";
+
+} else if (data.status === "rejected") {
+  confirmation.textContent =
+    "❌ आपकी Booking अस्वीकार हो गई है।";
+  confirmation.style.color = "red";
+
+} else {
+  confirmation.textContent =
+    "⏳ आपकी Booking अभी मंजूरी का इंतजार कर रही है।";
+  confirmation.style.color = "orange";
+}
+
+card.appendChild(confirmation);
       card.appendChild(details);
+
+      if (data.status === "pending") {
+        ["approved", "rejected"].forEach(decision => {
+
+          const btn = document.createElement("button");
+
+          btn.textContent =
+            decision === "approved"
+            ? "✅ Approve"
+            : "❌ Reject";
+
+          btn.addEventListener("click", async () => {
+
+            btn.disabled = true;
+
+            try {
+
+              await updateDoc(
+                doc(db, "bookings", item.id),
+                {
+                  status: decision
+                }
+              );
+// SAVE OWNER PHONE AFTER BOOKING APPROVAL
+if (decision === "approved") {
+  const vehicleSnap = await getDoc(
+    doc(db, "vehicles", data.vehicleId)
+  );
+
+  if (!vehicleSnap.exists()) {
+    throw new Error("Vehicle record not found");
+  }
+
+  const ownerPhone = vehicleSnap.data().ownerPhone;
+
+  if (!/^[6-9][0-9]{9}$/.test(ownerPhone || "")) {
+    throw new Error("Owner phone number invalid");
+  }
+
+  await setDoc(
+    doc(db, "bookingContacts", item.id),
+    {
+      ownerPhone: ownerPhone
+    },
+    { merge: true }
+  );
+}        
+// SAVE OWNER PHONE AFTER BOOKING APPROVAL
+if (decision === "approved") {
+
+  const ownerRequestSnap = await getDoc(
+  doc(db, "vehicleRequests", data.vehicleId)
+);
+
+  if (!ownerRequestSnap.exists()) {
+    throw new Error("Owner record not found");
+  }
+
+  const ownerPhone = ownerRequestSnap.data().ownerPhone;
+
+  if (!/^[6-9][0-9]{9}$/.test(ownerPhone)) {
+    throw new Error("Owner phone invalid");
+  }
+
+  await updateDoc(
+    doc(db, "bookingContacts", item.id),
+    {
+      ownerPhone: ownerPhone
+    }
+  );
+
+  console.log("✅ Owner phone saved securely");
+  }
+              details.textContent += " | नया Status: " + decision;
+
+              card.querySelectorAll("button")
+                .forEach(button => button.remove());
+
+            } catch (error) {
+              alert("❌ Error: " + (error.code || error.message));
+              btn.disabled = false;
+            }
+          });
+
+          card.appendChild(btn);
+        });
+      }
+
       box.appendChild(card);
     });
 
   } catch (error) {
     box.textContent = "❌ Error: " + (error.code || error.message);
   }
-
 });
 
 // ADMIN DEMO PAYMENTS DASHBOARD
-
 document.getElementById("adminPaymentsBtn")
 .addEventListener("click", async () => {
 
@@ -1486,6 +1626,7 @@ document.getElementById("adminPaymentsBtn")
   box.textContent = "💳 Demo Payments लोड हो रहे हैं...";
 
   try {
+
     const snapshot = await getDocs(
       collection(db, "demoPayments")
     );
@@ -1499,30 +1640,32 @@ document.getElementById("adminPaymentsBtn")
 
     let totalAdvance = 0;
     let totalRemaining = 0;
-    let totalFareSum = 0;
-    let totalPayments = 0;
+let totalFareSum = 0;
+let totalPayments = 0;
+    // DAILY AND MONTHLY DEMO REPORT
+let todayPayments = 0;
+let todayCommission = 0;
 
-    let todayPayments = 0;
-    let todayCommission = 0;
-    let monthPayments = 0;
-    let monthCommission = 0;
+let monthPayments = 0;
+let monthCommission = 0;
 
-    const now = new Date();
+const now = new Date();
 
-    const todayKey = [
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    ].join("-");
+const todayKey = [
+  now.getFullYear(),
+  now.getMonth(),
+  now.getDate()
+].join("-");
 
-    const monthKey = [
-      now.getFullYear(),
-      now.getMonth()
-    ].join("-");
-
+const monthKey = [
+  now.getFullYear(),
+  now.getMonth()
+].join("-");
     snapshot.forEach(item => {
+
       const data = item.data();
 
+      // केवल वैध Demo रिकॉर्ड का हिसाब
       if (data.paymentMode !== "demo") return;
 
       const total = Number(data.totalFare || 0);
@@ -1531,73 +1674,241 @@ document.getElementById("adminPaymentsBtn")
 
       totalAdvance += advance;
       totalRemaining += remaining;
-      totalFareSum += total;
-      totalPayments++;
+totalFareSum += total;
+totalPayments++;
+      // DAILY AND MONTHLY COMMISSION CALCULATION
+if (data.createdAt && typeof data.createdAt.toDate === "function") {
 
-      if (data.createdAt && typeof data.createdAt.toDate === "function") {
-        const paymentDate = data.createdAt.toDate();
+  const paymentDate = data.createdAt.toDate();
 
-        const paymentTodayKey = [
-          paymentDate.getFullYear(),
-          paymentDate.getMonth(),
-          paymentDate.getDate()
-        ].join("-");
+  const paymentTodayKey = [
+    paymentDate.getFullYear(),
+    paymentDate.getMonth(),
+    paymentDate.getDate()
+  ].join("-");
 
-        const paymentMonthKey = [
-          paymentDate.getFullYear(),
-          paymentDate.getMonth()
-        ].join("-");
+  const paymentMonthKey = [
+    paymentDate.getFullYear(),
+    paymentDate.getMonth()
+  ].join("-");
 
-        if (paymentTodayKey === todayKey) {
-          todayPayments++;
-          todayCommission += advance;
-        }
+  if (paymentTodayKey === todayKey) {
+    todayPayments++;
+    todayCommission += advance;
+  }
 
-        if (paymentMonthKey === monthKey) {
-          monthPayments++;
-          monthCommission += advance;
-        }
-      }
-
+  if (paymentMonthKey === monthKey) {
+    monthPayments++;
+    monthCommission += advance;
+  }
+}
       const card = document.createElement("div");
       card.className = "vehicle-card";
 
-      card.textContent =
-        "Booking: " + (data.bookingId || item.id) +
-        " | कुल किराया: ₹" + total.toFixed(2) +
-        " | Advance: ₹" + advance.toFixed(2) +
-        " | बाकी: ₹" + remaining.toFixed(2);
+      const details = document.createElement("p");
 
+      details.textContent =
+        "📋 Booking ID: " + (data.bookingId || "") +
+        " | 💰 कुल किराया: ₹" + total.toFixed(2) +
+        " | 💳 Demo Advance 15%: ₹" + advance.toFixed(2) +
+        " | 🚗 मालिक का हिस्सा 85%: ₹" + remaining.toFixed(2) +
+        " | 🧪 Status: " + (data.paymentStatus || "");
+
+      card.appendChild(details);
       box.appendChild(card);
+
     });
 
-    const summary = document.createElement("div");
-    summary.className = "vehicle-card";
+    const summary = document.createElement("h3");
 
     summary.textContent =
-      "कुल Demo Payments: " + totalPayments +
-      " | कुल किराया: ₹" + totalFareSum.toFixed(2) +
-      " | कुल Advance: ₹" + totalAdvance.toFixed(2) +
-      " | बाकी राशि: ₹" + totalRemaining.toFixed(2) +
-      " | आज की Bookings: " + todayPayments +
-      " | आज का Advance: ₹" + todayCommission.toFixed(2) +
-      " | महीने की Bookings: " + monthPayments +
-      " | महीने का Advance: ₹" + monthCommission.toFixed(2);
+      "🧪 कुल Demo Advance: ₹" +
+      totalAdvance.toFixed(2) +
+      " | मालिकों का Demo हिस्सा: ₹" +
+      totalRemaining.toFixed(2);
 
     box.prepend(summary);
+// ADMIN COMMISSION SUMMARY
+const commissionDashboard = document.createElement("div");
+
+commissionDashboard.className = "vehicle-card";
+
+commissionDashboard.innerHTML = `
+  <h3>📊 Darshan Rides Commission Dashboard</h3>
+
+  <p>🚗 कुल Demo Payments: ${totalPayments}</p>
+
+  <p>💰 कुल किराया: ₹${totalFareSum.toFixed(2)}</p>
+
+  <p>💳 15% Demo Commission: ₹${totalAdvance.toFixed(2)}</p>
+
+  <p>🚕 मालिकों का 85% हिस्सा: ₹${totalRemaining.toFixed(2)}</p>
+
+  <p>⚠️ यह वास्तविक कमाई नहीं है।</p>
+`;
+
+box.prepend(commissionDashboard);
+    // DAILY AND MONTHLY DEMO COMMISSION REPORT
+const reportBox = document.createElement("div");
+
+reportBox.className = "vehicle-card";
+
+const reportTitle = document.createElement("h3");
+reportTitle.textContent = "📅 Daily / Monthly Demo Report";
+
+const dailyReport = document.createElement("p");
+dailyReport.textContent =
+  "📅 आज के Demo Payments: " + todayPayments +
+  " | 💳 आज का 15% Commission: ₹" +
+  todayCommission.toFixed(2);
+
+const monthlyReport = document.createElement("p");
+monthlyReport.textContent =
+  "📆 इस महीने के Demo Payments: " + monthPayments +
+  " | 💰 इस महीने का 15% Commission: ₹" +
+  monthCommission.toFixed(2);
+
+const reportWarning = document.createElement("p");
+reportWarning.textContent =
+  "⚠️ यह केवल Demo Report है, वास्तविक कमाई नहीं।";
+
+reportBox.append(
+  reportTitle,
+  dailyReport,
+  monthlyReport,
+  reportWarning
+);
+
+box.prepend(reportBox);
+    const warning = document.createElement("p");
+    warning.textContent =
+      "⚠️ ये केवल Demo रिकॉर्ड हैं। वास्तविक भुगतान प्राप्त नहीं हुआ है।";
+
+    box.prepend(warning);
 
   } catch (error) {
-    box.textContent = "❌ Error: " + (error.code || error.message);
+
+    console.error(error);
+
+    box.textContent =
+      "❌ Error: " + (error.code || error.message);
+
   }
 
 });
- // START
-loadVehicles();
+// DEMO PAYMENT CSV DOWNLOAD
+async function downloadDemoReport(period) {
+  const user = auth.currentUser;
 
+  if (!user || user.uid !== ADMIN_UID) {
+    alert("❌ केवल Admin रिपोर्ट डाउनलोड कर सकता है।");
+    return;
+  }
+
+  try {
+    const snapshot = await getDocs(collection(db, "demoPayments"));
+    const now = new Date();
+
+    const rows = [
+      ["Booking ID", "Date", "Total Fare", "Demo Commission 15%", "Owner Share 85%", "Status"]
+    ];
+let reportTotalFare = 0;
+let reportTotalCommission = 0;
+let reportTotalOwnerShare = 0;
+    snapshot.forEach(item => {
+      const data = item.data();
+
+      if (
+        data.paymentMode !== "demo" ||
+        !data.createdAt ||
+        typeof data.createdAt.toDate !== "function"
+      ) return;
+
+      const date = data.createdAt.toDate();
+
+      if (period === "daily" &&
+          date.toDateString() !== now.toDateString()) return;
+
+      if (period === "monthly" &&
+          (date.getFullYear() !== now.getFullYear() ||
+           date.getMonth() !== now.getMonth())) return;
+reportTotalFare += Number(data.totalFare || 0);
+reportTotalCommission += Number(data.advanceAmount || 0);
+reportTotalOwnerShare += Number(data.remainingAmount || 0);
+      rows.push([
+        data.bookingId || item.id,
+        date.toLocaleString("en-IN"),
+        Number(data.totalFare || 0).toFixed(2),
+        Number(data.advanceAmount || 0).toFixed(2),
+        Number(data.remainingAmount || 0).toFixed(2),
+        data.paymentStatus || ""
+      ]);
+    });
+
+    if (rows.length === 1) {
+      alert("इस अवधि में कोई तारीख वाला Demo Payment नहीं मिला।");
+      return;
+    }
+rows.push([
+  "TOTAL",
+  "",
+  reportTotalFare.toFixed(2),
+  reportTotalCommission.toFixed(2),
+  reportTotalOwnerShare.toFixed(2),
+  "DEMO ONLY"
+]);
+    const csv = rows.map(row =>
+      row.map(value =>
+        '"' + String(value).replace(/"/g, '""') + '"'
+      ).join(",")
+    ).join("\r\n"); 
+        ).join(",");
+
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `darshan-rides-demo-${period}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Report Error: " + (error.code || error.message));
+  }
+}
+
+document.getElementById("downloadDailyReportBtn")
+  .addEventListener("click", () => downloadDemoReport("daily"));
+
+document.getElementById("downloadMonthlyReportBtn")
+  .addEventListener("click", () => downloadDemoReport("monthly"));
+
+// Darshan Rides Firebase Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/darshan-rides/firebase-messaging-sw.js")
+    .then((registration) => {
+      console.log("✅ Service Worker Registered", registration);
+    })
+    .catch((error) => {
+      console.error("❌ Service Worker Error:", error);
+    });
+}
+
+// START
+loadVehicles();
 // 📱 PUSH NOTIFICATION PERMISSION
 
 const enablePushBtn = document.getElementById("enablePushBtn");
-
 if (enablePushBtn) enablePushBtn.addEventListener("click", async () => {
 
   const status = document.getElementById("pushStatus");
@@ -1639,15 +1950,16 @@ if (enablePushBtn) enablePushBtn.addEventListener("click", async () => {
     });
 
     if (token) {
-      await setDoc(doc(db, "adminPushTokens", auth.currentUser.uid), {
-        uid: auth.currentUser.uid,
-        token: token,
-        updatedAt: serverTimestamp()
-      });
+  await setDoc(doc(db, "adminPushTokens", auth.currentUser.uid), {
+    uid: auth.currentUser.uid,
+    token: token,
+    updatedAt: serverTimestamp()
+  });
 
-      status.textContent = "✅ Admin Token Firebase में सेव हो गया!";
-      console.log("FCM Token:", token);
-    } else {
+  status.textContent = "✅ Admin Token Firebase में सेव हो गया!";
+  console.log("FCM Token:", token);
+    }
+    else {
       status.textContent = "❌ Token नहीं मिला।";
     }
 
@@ -1657,7 +1969,6 @@ if (enablePushBtn) enablePushBtn.addEventListener("click", async () => {
   }
 
 });
-
 // MOBILE OTP LOGIN
 
 let confirmationResult = null;
@@ -1761,8 +2072,7 @@ verifyOtpBtn.addEventListener("click", async () => {
   }
 
 });
-
-// OWNER DASHBOARD - MY VEHICLE BOOKINGS
+  // OWNER DASHBOARD - MY VEHICLE BOOKINGS
 
 document.getElementById("ownerBookingsBtn")
 .addEventListener("click", async () => {
@@ -1779,6 +2089,7 @@ document.getElementById("ownerBookingsBtn")
 
   try {
 
+    // मालिक की गाड़ियाँ खोजें
     const vehicleQuery = query(
       collection(db, "vehicles"),
       where("ownerId", "==", user.uid)
@@ -1797,82 +2108,81 @@ document.getElementById("ownerBookingsBtn")
       vehicleSnapshot.docs.map(item => item.id)
     );
 
-    // OWNER VEHICLE AVAILABILITY CONTROL
+// OWNER VEHICLE AVAILABILITY CONTROL
+const availabilityTitle = document.createElement("h3");
+availabilityTitle.textContent = "🚗 मेरी गाड़ियों की उपलब्धता";
+box.appendChild(availabilityTitle);
 
-    const availabilityTitle = document.createElement("h3");
-    availabilityTitle.textContent = "🚗 मेरी गाड़ियों की उपलब्धता";
-    box.appendChild(availabilityTitle);
+vehicleSnapshot.docs.forEach((vehicleDoc) => {
 
-    vehicleSnapshot.docs.forEach((vehicleDoc) => {
+  const vehicle = vehicleDoc.data();
 
-      const vehicle = vehicleDoc.data();
+  const row = document.createElement("div");
+  row.className = "vehicle-card";
 
-      const row = document.createElement("div");
-      row.className = "vehicle-card";
+  const name = document.createElement("p");
+  name.textContent =
+    "🚗 " + (vehicle.vehicleName || "गाड़ी");
 
-      const name = document.createElement("p");
-      name.textContent =
-        "🚗 " + (vehicle.vehicleName || "गाड़ी");
+  const button = document.createElement("button");
 
-      const button = document.createElement("button");
+  function refreshButton(available) {
+    button.textContent = available
+      ? "🟢 Available — बंद करें"
+      : "🔴 Unavailable — चालू करें";
 
-      function refreshButton(available) {
-        button.textContent = available
-          ? "🟢 Available — बंद करें"
-          : "🔴 Unavailable — चालू करें";
+    button.style.background =
+      available ? "#228b22" : "#cc3333";
+  }
 
-        button.style.background =
-          available ? "#228b22" : "#cc3333";
-      }
+  let available = vehicle.available !== false;
 
-      let available = vehicle.available !== false;
+  refreshButton(available);
 
+  button.addEventListener("click", async () => {
+
+    button.disabled = true;
+
+    try {
+
+      const newValue = !available;
+
+      await updateDoc(
+        doc(db, "vehicles", vehicleDoc.id),
+        { available: newValue }
+      );
+
+      available = newValue;
       refreshButton(available);
 
-      button.addEventListener("click", async () => {
+      alert(
+        available
+          ? "✅ गाड़ी Available हो गई!"
+          : "🚫 गाड़ी Unavailable हो गई!"
+      );
 
-        button.disabled = true;
+    } catch (error) {
 
-        try {
+      alert(
+        "❌ Error: " +
+        (error.code || error.message)
+      );
 
-          const newValue = !available;
+    } finally {
+      button.disabled = false;
+    }
 
-          await updateDoc(
-            doc(db, "vehicles", vehicleDoc.id),
-            { available: newValue }
-          );
+  });
 
-          available = newValue;
-          refreshButton(available);
+  row.append(name, button);
+  box.appendChild(row);
 
-          alert(
-            available
-              ? "✅ गाड़ी Available हो गई!"
-              : "🚫 गाड़ी Unavailable हो गई!"
-          );
-
-        } catch (error) {
-
-          alert(
-            "❌ Error: " +
-            (error.code || error.message)
-          );
-
-        } finally {
-          button.disabled = false;
-        }
-
-      });
-
-      row.append(name, button);
-      box.appendChild(row);
-
-    });
-
+});
     // हर गाड़ी की Booking अलग से खोजें
+let totalBookings = 0;
 
-    let totalBookings = 0;
-    let pendingBookings = 0;
+// 🔔 नई Pending Bookings की गिनती
+let pendingBookings = 0;
 
     for (const vehicleId of vehicleIds) {
 
@@ -1880,265 +2190,226 @@ document.getElementById("ownerBookingsBtn")
         collection(db, "bookings"),
         where("vehicleId", "==", vehicleId)
       );
+const ownedVehicle = vehicleSnapshot.docs.find(
+  vehicleDoc => vehicleDoc.id === vehicleId &&
+  vehicleDoc.data().ownerId === user.uid
+);
 
-      const ownedVehicle = vehicleSnapshot.docs.find(
-        vehicleDoc => vehicleDoc.id === vehicleId &&
-        vehicleDoc.data().ownerId === user.uid
-      );
-
-      if (!ownedVehicle) {
-        continue;
-      }
-
+if (!ownedVehicle) {
+  continue;
+}
       const bookingSnapshot = await getDocs(bookingQuery);
 
       bookingSnapshot.forEach(item => {
 
         const data = item.data();
-
-        if (data.status === "pending") {
-          pendingBookings++;
-        }
-
+// 🔔 Pending Booking की गिनती
+if (data.status === "pending") {
+  pendingBookings++;
+}
         const card = document.createElement("div");
         card.className = "vehicle-card";
 
         const details = document.createElement("p");
 
         details.textContent =
-          "🚗 गाड़ी: " + (data.vehicleName || "") +
-          " | 📍 Pickup: " + (data.pickup || "") +
-          " | 🏁 Drop: " + (data.drop || "") +
-          " | 📏 दूरी: " +
-          (data.distanceKm != null
-            ? data.distanceKm + " KM"
-            : "उपलब्ध नहीं") +
-          " | 💰 कुल किराया: " +
-          (data.totalFare != null
-            ? "₹" + Number(data.totalFare).toFixed(2)
-            : "उपलब्ध नहीं") +
-          " | Status: " + (data.status || "");
+  "🚗 गाड़ी: " + (data.vehicleName || "") +
+  " | 📍 Pickup: " + (data.pickup || "") +
+  " | 🏁 Drop: " + (data.drop || "") +
+  " | 📏 दूरी: " +
+  (data.distanceKm != null
+    ? data.distanceKm + " KM"
+    : "उपलब्ध नहीं") +
+  " | 💰 कुल किराया: " +
+  (data.totalFare != null
+    ? "₹" + Number(data.totalFare).toFixed(2)
+    : "उपलब्ध नहीं") +
+  " | Status: " + (data.status || "");
 
         card.appendChild(details);
 
-        // DRIVER LIVE GPS SHARING
+// DRIVER LIVE GPS SHARING (approved bookings only)
+if (data.status === "approved") {
+  const gpsStatus = document.createElement("p");
+  gpsStatus.textContent = data.driverLatitude
+    ? "🟢 Live GPS लोकेशन साझा हो रही है।"
+    : "Live GPS अभी बंद है।";
+  const gpsButton = document.createElement("button");
+  gpsButton.textContent = "📡 Live GPS चालू करें";
+  let gpsWatchId = null;
+  gpsButton.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      gpsStatus.textContent = "❌ इस फोन में GPS उपलब्ध नहीं है।";
+      return;
+    }
+    if (gpsWatchId !== null) {
+      navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+      gpsButton.textContent = "📡 Live GPS चालू करें";
+      gpsStatus.textContent = "Live GPS बंद कर दिया गया।";
+      return;
+    }
+    gpsButton.textContent = "⏹ Live GPS बंद करें";
+    gpsStatus.textContent = "GPS अनुमति दें; लोकेशन साझा हो रही है...";
+    gpsWatchId = navigator.geolocation.watchPosition(async (position) => {
+      try {
+        await updateDoc(doc(db, "bookings", item.id), {
+          driverLatitude: position.coords.latitude,
+          driverLongitude: position.coords.longitude,
+          driverLocationUpdatedAt: serverTimestamp()
+        });
+        gpsStatus.textContent = "🟢 आपकी Live Location ग्राहक को दिखाई दे रही है।";
+      } catch (error) {
+        gpsStatus.textContent = "❌ लोकेशन सेव नहीं हुई: " + (error.code || error.message);
+      }
+    }, (error) => {
+      gpsStatus.textContent = "❌ GPS Error: " + error.message;
+    }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 });
+  });
+  card.append(gpsButton, gpsStatus);
+}
 
-        if (data.status === "approved") {
+// OWNER BOOKING ACCEPT / REJECT
+if (data.status === "pending") {
 
-          const gpsStatus = document.createElement("p");
+  ["approved", "rejected"].forEach((decision) => {
 
-          gpsStatus.textContent = data.driverLatitude
-            ? "🟢 Live GPS लोकेशन साझा हो रही है।"
-            : "Live GPS अभी बंद है।";
+    const button = document.createElement("button");
 
-          const gpsButton = document.createElement("button");
-          gpsButton.textContent = "📡 Live GPS चालू करें";
+    button.textContent =
+      decision === "approved"
+        ? "✅ Accept Booking"
+        : "❌ Reject Booking";
 
-          let gpsWatchId = null;
+    button.addEventListener("click", async () => {
 
-          gpsButton.addEventListener("click", () => {
+      const buttons = card.querySelectorAll("button");
 
-            if (!navigator.geolocation) {
-              gpsStatus.textContent = "❌ इस फोन में GPS उपलब्ध नहीं है।";
-              return;
-            }
+      buttons.forEach(btn => {
+        btn.disabled = true;
+      });
 
-            if (gpsWatchId !== null) {
-              navigator.geolocation.clearWatch(gpsWatchId);
-              gpsWatchId = null;
-              gpsButton.textContent = "📡 Live GPS चालू करें";
-              gpsStatus.textContent = "Live GPS बंद कर दिया गया।";
-              return;
-            }
+      try {
 
-            gpsButton.textContent = "⏹ Live GPS बंद करें";
-            gpsStatus.textContent = "GPS अनुमति दें; लोकेशन साझा हो रही है...";
+        await updateDoc(
+          doc(db, "bookings", item.id),
+          {
+            status: decision
+          }
+        );
 
-            gpsWatchId = navigator.geolocation.watchPosition(async (position) => {
+        details.textContent =
+  "🚗 गाड़ी: " + (data.vehicleName || "") +
+  " | 📍 Pickup: " + (data.pickup || "") +
+  " | 🏁 Drop: " + (data.drop || "") +
+  " | 📏 दूरी: " +
+  (data.distanceKm != null
+    ? data.distanceKm + " KM"
+    : "उपलब्ध नहीं") +
+  " | 💰 कुल किराया: " +
+  (data.totalFare != null
+    ? "₹" + Number(data.totalFare).toFixed(2)
+    : "उपलब्ध नहीं") +
+  " | Status: " + decision;
 
-              try {
+        buttons.forEach(btn => btn.remove());
 
-                await updateDoc(doc(db, "bookings", item.id), {
-                  driverLatitude: position.coords.latitude,
-                  driverLongitude: position.coords.longitude,
-                  driverLocationUpdatedAt: serverTimestamp()
-                });
+        alert(
+          decision === "approved"
+            ? "✅ Booking Accept हो गई!"
+            : "❌ Booking Reject हो गई!"
+        );
 
-                gpsStatus.textContent = "🟢 आपकी Live Location ग्राहक को दिखाई दे रही है।";
+      } catch (error) {
 
-              } catch (error) {
+        console.error(error);
 
-                gpsStatus.textContent =
-                  "❌ लोकेशन सेव नहीं हुई: " +
-                  (error.code || error.message);
+        alert(
+          "❌ Error: " +
+          (error.code || error.message)
+        );
 
-              }
+        buttons.forEach(btn => {
+          btn.disabled = false;
+        });
 
-            }, (error) => {
+      }
 
-              gpsStatus.textContent = "❌ GPS Error: " + error.message;
+    });
 
-            }, {
-              enableHighAccuracy: true,
-              maximumAge: 3000,
-              timeout: 15000
-            });
+    card.appendChild(button);
 
-          });
+  });
 
-          card.append(gpsButton, gpsStatus);
-        }
+}
 
-        // OWNER BOOKING ACCEPT / REJECT
+box.appendChild(card);
 
-        if (data.status === "pending") {
+totalBookings++;
+// APPROVED BOOKING - CUSTOMER PHONE AND CALL BUTTON
+if (data.status === "approved") {
 
-          ["approved", "rejected"].forEach((decision) => {
+  const phoneInfo = document.createElement("p");
+  phoneInfo.textContent = "📞 ग्राहक का नंबर लोड हो रहा है...";
+  card.appendChild(phoneInfo);
 
-            const button = document.createElement("button");
+  getDoc(doc(db, "bookingContacts", item.id))
+    .then((contactSnap) => {
 
-            button.textContent =
-              decision === "approved"
-                ? "✅ Accept Booking"
-                : "❌ Reject Booking";
+      const customerPhone = contactSnap.exists()
+        ? contactSnap.data().customerPhone
+        : null;
 
-            button.addEventListener("click", async () => {
+      if (!/^[6-9][0-9]{9}$/.test(customerPhone || "")) {
+        phoneInfo.textContent =
+          "📞 ग्राहक का मोबाइल नंबर उपलब्ध नहीं है।";
+        return;
+      }
 
-              const buttons = card.querySelectorAll("button");
+      phoneInfo.textContent =
+        "📞 ग्राहक का मोबाइल नंबर: " + customerPhone;
 
-              buttons.forEach(btn => {
-                btn.disabled = true;
-              });
+      const callBtn = document.createElement("a");
+      callBtn.href = "tel:+91" + customerPhone;
+      callBtn.textContent = "📞 Call Now";
 
-              try {
+      callBtn.style.display = "inline-block";
+      callBtn.style.padding = "12px 18px";
+      callBtn.style.background = "#ff8c00";
+      callBtn.style.color = "white";
+      callBtn.style.borderRadius = "8px";
+      callBtn.style.textDecoration = "none";
 
-                await updateDoc(
-                  doc(db, "bookings", item.id),
-                  {
-                    status: decision
-                  }
-                );
+      card.appendChild(callBtn);
+callBtn.style.setProperty("display", "inline-block", "important");
+    })
+    .catch((error) => {
+      console.error(error);
+      phoneInfo.textContent =
+        "❌ नंबर नहीं दिख सका: " +
+        (error.code || error.message);
+    });
 
-                details.textContent =
-                  "🚗 गाड़ी: " + (data.vehicleName || "") +
-                  " | 📍 Pickup: " + (data.pickup || "") +
-                  " | 🏁 Drop: " + (data.drop || "") +
-                  " | 📏 दूरी: " +
-                  (data.distanceKm != null
-                    ? data.distanceKm + " KM"
-                    : "उपलब्ध नहीं") +
-                  " | 💰 कुल किराया: " +
-                  (data.totalFare != null
-                    ? "₹" + Number(data.totalFare).toFixed(2)
-                    : "उपलब्ध नहीं") +
-                  " | Status: " + decision;
-
-                buttons.forEach(btn => btn.remove());
-
-                alert(
-                  decision === "approved"
-                    ? "✅ Booking Accept हो गई!"
-                    : "❌ Booking Reject हो गई!"
-                );
-
-              } catch (error) {
-
-                console.error(error);
-
-                alert(
-                  "❌ Error: " +
-                  (error.code || error.message)
-                );
-
-                buttons.forEach(btn => {
-                  btn.disabled = false;
-                });
-
-              }
-
-            });
-
-            card.appendChild(button);
-
-          });
-
-        }
-
-        box.appendChild(card);
-        totalBookings++;
-
-        // APPROVED BOOKING - CUSTOMER PHONE AND CALL BUTTON
-
-        if (data.status === "approved") {
-
-          const phoneInfo = document.createElement("p");
-          phoneInfo.textContent = "📞 ग्राहक का नंबर लोड हो रहा है...";
-          card.appendChild(phoneInfo);
-
-          getDoc(doc(db, "bookingContacts", item.id))
-            .then((contactSnap) => {
-
-              const customerPhone = contactSnap.exists()
-                ? contactSnap.data().customerPhone
-                : null;
-
-              if (!/^[6-9][0-9]{9}$/.test(customerPhone || "")) {
-                phoneInfo.textContent =
-                  "📞 ग्राहक का मोबाइल नंबर उपलब्ध नहीं है।";
-                return;
-              }
-
-              phoneInfo.textContent =
-                "📞 ग्राहक का मोबाइल नंबर: " + customerPhone;
-
-              const callBtn = document.createElement("a");
-              callBtn.href = "tel:+91" + customerPhone;
-              callBtn.textContent = "📞 Call Now";
-
-              callBtn.style.display = "inline-block";
-              callBtn.style.padding = "12px 18px";
-              callBtn.style.background = "#ff8c00";
-              callBtn.style.color = "white";
-              callBtn.style.borderRadius = "8px";
-              callBtn.style.textDecoration = "none";
-
-              card.appendChild(callBtn);
-              callBtn.style.setProperty("display", "inline-block", "important");
-
-            })
-            .catch((error) => {
-
-              console.error(error);
-
-              phoneInfo.textContent =
-                "❌ नंबर नहीं दिख सका: " +
-                (error.code || error.message);
-
-            });
-
-        }
-
+          }
       });
     }
+// 🔔 OWNER PENDING BOOKING NOTIFICATION
+const notification = document.createElement("div");
 
-    // OWNER PENDING BOOKING NOTIFICATION
+notification.className = "vehicle-card";
 
-    const notification = document.createElement("div");
+notification.style.background = "#fff3cd";
+notification.style.border = "2px solid orange";
 
-    notification.className = "vehicle-card";
-    notification.style.background = "#fff3cd";
-    notification.style.border = "2px solid orange";
+notification.textContent = pendingBookings > 0
+  ? "🔔 आपके पास " + pendingBookings + " Pending Bookings हैं!"
+  : "✅ अभी कोई Pending Booking नहीं है।";
 
-    notification.textContent = pendingBookings > 0
-      ? "🔔 आपके पास " + pendingBookings + " Pending Bookings हैं!"
-      : "✅ अभी कोई Pending Booking नहीं है।";
-
-    box.prepend(notification);
-
+box.prepend(notification);
     if (totalBookings === 0) {
-      const noBookings = document.createElement("p");
-      noBookings.textContent = "अभी आपकी गाड़ियों की कोई Booking नहीं है।";
-      box.appendChild(noBookings);
+  const noBookings = document.createElement("p");
+  noBookings.textContent = "अभी आपकी गाड़ियों की कोई Booking नहीं है।";
+  box.appendChild(noBookings);
     }
 
   } catch (error) {
@@ -2151,8 +2422,7 @@ document.getElementById("ownerBookingsBtn")
   }
 
 });
-
-// DARSHAN RIDES - FARE CALCULATOR
+  // DARSHAN RIDES - FARE CALCULATOR
 
 document.getElementById("calculateFareBtn")
 .addEventListener("click", () => {
@@ -2181,39 +2451,24 @@ document.getElementById("calculateFareBtn")
 
 });
 </script>
-
 <!-- OneSignal Push Notification -->
-
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 
 <script>
 // Show otherwise-hidden startup errors on the page so Firebase setup can be diagnosed on mobile.
-
 window.addEventListener("error", function (event) {
   const status = document.getElementById("firebaseStatus");
-
-  if (status) {
-    status.textContent =
-      "❌ JavaScript Error: " +
-      (event.message || "अज्ञात त्रुटि");
-  }
+  if (status) status.textContent = "❌ JavaScript Error: " + (event.message || "अज्ञात त्रुटि");
 });
-
 window.addEventListener("unhandledrejection", function (event) {
   const status = document.getElementById("firebaseStatus");
   const reason = event.reason;
-
-  if (status) {
-    status.textContent =
-      "❌ Startup Error: " +
-      (reason && (reason.message || reason.code) || String(reason));
-  }
+  if (status) status.textContent = "❌ Startup Error: " + (reason && (reason.message || reason.code) || String(reason));
 });
 
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 
 OneSignalDeferred.push(async function(OneSignal) {
-
   await OneSignal.init({
     appId: "53cf96e4-92e3-4f44-ba5a-31aa6dadb711",
     serviceWorkerPath: "/darshan-rides/OneSignalSDKWorker.js",
@@ -2221,9 +2476,7 @@ OneSignalDeferred.push(async function(OneSignal) {
       scope: "/darshan-rides/"
     }
   });
-
 });
 </script>
-
 </body>
-</html> 
+</html>
