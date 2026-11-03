@@ -797,10 +797,9 @@ async function loadVehicles(searchCity = "") {
   vehicleList.replaceChildren();
 
   try {
-
-    const snapshot = await getDocs(
+        const snapshot = await getDocs(
       collection(db, "vehicles")
-          );
+    );
 
     let found = 0;
 
@@ -1597,12 +1596,12 @@ document.getElementById("adminPaymentsBtn")
     );
 
     box.replaceChildren();
-
-    if (snapshot.empty) {
+        if (snapshot.empty) {
       box.textContent = "अभी कोई Demo Payment नहीं है।";
       return;
-      }
-        let totalAdvance = 0;
+    }
+
+    let totalAdvance = 0;
     let totalRemaining = 0;
 let totalFareSum = 0;
 let totalPayments = 0;
@@ -1629,96 +1628,722 @@ const monthKey = [
 
       const data = item.data();
 
-      // केवल वैध Demo Payment
-      if (data.paymentStatus !== "demo_success") {
-        return;
-      }
+      // केवल वैध Demo रिकॉर्ड का हिसाब
+      if (data.paymentMode !== "demo") return;
 
+      const total = Number(data.totalFare || 0);
       const advance = Number(data.advanceAmount || 0);
       const remaining = Number(data.remainingAmount || 0);
-      const fare = Number(data.totalFare || 0);
 
       totalAdvance += advance;
       totalRemaining += remaining;
-      totalFareSum += fare;
-      totalPayments++;
+totalFareSum += total;
+totalPayments++;
+      // DAILY AND MONTHLY COMMISSION CALCULATION
+if (data.createdAt && typeof data.createdAt.toDate === "function") {
 
-      const paymentDate =
-        data.createdAt?.toDate
-          ? data.createdAt.toDate()
-          : null;
+  const paymentDate = data.createdAt.toDate();
 
-      if (paymentDate) {
+  const paymentTodayKey = [
+    paymentDate.getFullYear(),
+    paymentDate.getMonth(),
+    paymentDate.getDate()
+  ].join("-");
 
-        const paymentDayKey = [
-          paymentDate.getFullYear(),
-          paymentDate.getMonth(),
-          paymentDate.getDate()
-        ].join("-");
+  const paymentMonthKey = [
+    paymentDate.getFullYear(),
+    paymentDate.getMonth()
+  ].join("-");
 
-        const paymentMonthKey = [
-          paymentDate.getFullYear(),
-          paymentDate.getMonth()
-        ].join("-");
+  if (paymentTodayKey === todayKey) {
+    todayPayments++;
+    todayCommission += advance;
+  }
 
-        if (paymentDayKey === todayKey) {
-          todayPayments += advance;
-          todayCommission += advance;
-        }
-
-        if (paymentMonthKey === monthKey) {
-          monthPayments += advance;
-          monthCommission += advance;
-        }
-      }
-
+  if (paymentMonthKey === monthKey) {
+    monthPayments++;
+    monthCommission += advance;
+  }
+}
       const card = document.createElement("div");
       card.className = "vehicle-card";
 
-      card.textContent =
-        "💳 Booking ID: " + item.id +
-        " | 💰 कुल किराया: ₹" + fare.toFixed(2) +
-        " | 💳 Advance: ₹" + advance.toFixed(2) +
-        " | 🚗 बाकी राशि: ₹" + remaining.toFixed(2);
+      const details = document.createElement("p");
 
+      details.textContent =
+        "📋 Booking ID: " + (data.bookingId || "") +
+        " | 💰 कुल किराया: ₹" + total.toFixed(2) +
+        " | 💳 Demo Advance 15%: ₹" + advance.toFixed(2) +
+        " | 🚗 मालिक का हिस्सा 85%: ₹" + remaining.toFixed(2) +
+        " | 🧪 Status: " + (data.paymentStatus || "");
+
+      card.appendChild(details);
       box.appendChild(card);
 
     });
 
-    const summary = document.createElement("div");
-    summary.className = "vehicle-card";
+    const summary = document.createElement("h3");
 
-    summary.innerHTML = `
-      <h3>📊 Demo Payment Summary</h3>
-      <p>कुल Payments: ${totalPayments}</p>
-      <p>कुल किराया: ₹${totalFareSum.toFixed(2)}</p>
-      <p>कुल Advance: ₹${totalAdvance.toFixed(2)}</p>
-      <p>बाकी राशि: ₹${totalRemaining.toFixed(2)}</p>
-      <hr>
-      <h3>📅 आज की रिपोर्ट</h3>
-      <p>आज का Advance: ₹${todayPayments.toFixed(2)}</p>
-      <p>आज का Commission: ₹${todayCommission.toFixed(2)}</p>
-      <hr>
-      <h3>📅 इस महीने की रिपोर्ट</h3>
-      <p>महीने का Advance: ₹${monthPayments.toFixed(2)}</p>
-      <p>महीने का Commission: ₹${monthCommission.toFixed(2)}</p>
-    `;
+    summary.textContent =
+      "🧪 कुल Demo Advance: ₹" +
+      totalAdvance.toFixed(2) +
+      " | मालिकों का Demo हिस्सा: ₹" +
+      totalRemaining.toFixed(2);
 
     box.prepend(summary);
+// ADMIN COMMISSION SUMMARY
+const commissionDashboard = document.createElement("div");
+
+commissionDashboard.className = "vehicle-card";
+
+commissionDashboard.innerHTML = `
+  <h3>📊 Darshan Rides Commission Dashboard</h3>
+
+  <p>🚗 कुल Demo Payments: ${totalPayments}</p>
+
+  <p>💰 कुल किराया: ₹${totalFareSum.toFixed(2)}</p>
+
+  <p>💳 15% Demo Commission: ₹${totalAdvance.toFixed(2)}</p>
+
+  <p>🚕 मालिकों का 85% हिस्सा: ₹${totalRemaining.toFixed(2)}</p>
+
+  <p>⚠️ यह वास्तविक कमाई नहीं है।</p>
+`;
+
+box.prepend(commissionDashboard);
+    // DAILY AND MONTHLY DEMO COMMISSION REPORT
+const reportBox = document.createElement("div");
+
+reportBox.className = "vehicle-card";
+
+const reportTitle = document.createElement("h3");
+reportTitle.textContent = "📅 Daily / Monthly Demo Report";
+
+const dailyReport = document.createElement("p");
+dailyReport.textContent =
+  "📅 आज के Demo Payments: " + todayPayments +
+  " | 💳 आज का 15% Commission: ₹" +
+  todayCommission.toFixed(2);
+
+const monthlyReport = document.createElement("p");
+monthlyReport.textContent =
+  "📆 इस महीने के Demo Payments: " + monthPayments +
+  " | 💰 इस महीने का 15% Commission: ₹" +
+  monthCommission.toFixed(2);
+
+const reportWarning = document.createElement("p");
+reportWarning.textContent =
+  "⚠️ यह केवल Demo Report है, वास्तविक कमाई नहीं।";
+
+reportBox.append(
+  reportTitle,
+  dailyReport,
+  monthlyReport,
+  reportWarning
+);
+
+box.prepend(reportBox);
+    const warning = document.createElement("p");
+    warning.textContent =
+      "⚠️ ये केवल Demo रिकॉर्ड हैं। वास्तविक भुगतान प्राप्त नहीं हुआ है।";
+
+    box.prepend(warning);
 
   } catch (error) {
 
     console.error(error);
 
     box.textContent =
-      "❌ Error: " +
-      (error.code || error.message);
+      "❌ Error: " + (error.code || error.message);
 
   }
 
 });
+// DEMO PAYMENT CSV DOWNLOAD
+async function downloadDemoReport(period) {
+  const user = auth.currentUser;
 
-// FARE CALCULATOR
+  if (!user || user.uid !== ADMIN_UID) {
+    alert("❌ केवल Admin रिपोर्ट डाउनलोड कर सकता है।");
+    return;
+  }
+
+  try {
+    const snapshot = await getDocs(collection(db, "demoPayments"));
+    const now = new Date();
+
+    const rows = [
+      ["Booking ID", "Date", "Total Fare", "Demo Commission 15%", "Owner Share 85%", "Status"]
+    ];
+let reportTotalFare = 0;
+let reportTotalCommission = 0;
+let reportTotalOwnerShare = 0;
+    snapshot.forEach(item => {
+      const data = item.data();
+
+      if (
+        data.paymentMode !== "demo" ||
+        !data.createdAt ||
+        typeof data.createdAt.toDate !== "function"
+      ) return;
+
+      const date = data.createdAt.toDate();
+
+      if (period === "daily" &&
+          date.toDateString() !== now.toDateString()) return;
+
+      if (period === "monthly" &&
+          (date.getFullYear() !== now.getFullYear() ||
+           date.getMonth() !== now.getMonth())) return;
+reportTotalFare += Number(data.totalFare || 0);
+reportTotalCommission += Number(data.advanceAmount || 0);
+reportTotalOwnerShare += Number(data.remainingAmount || 0);
+      rows.push([
+        data.bookingId || item.id,
+        date.toLocaleString("en-IN"),
+        Number(data.totalFare || 0).toFixed(2),
+        Number(data.advanceAmount || 0).toFixed(2),
+        Number(data.remainingAmount || 0).toFixed(2),
+        data.paymentStatus || ""
+      ]);
+    });
+
+    if (rows.length === 1) {
+      alert("इस अवधि में कोई तारीख वाला Demo Payment नहीं मिला।");
+      return;
+    }
+rows.push([
+  "TOTAL",
+  "",
+  reportTotalFare.toFixed(2),
+  reportTotalCommission.toFixed(2),
+  reportTotalOwnerShare.toFixed(2),
+  "DEMO ONLY"
+]);
+    const csv = rows.map(row =>
+      row.map(value =>
+        '"' + String(value).replace(/"/g, '""') + '"'
+      ).join(",")
+    ).join("\r\n");
+
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `darshan-rides-demo-${period}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Report Error: " + (error.code || error.message));
+  }
+}
+
+document.getElementById("downloadDailyReportBtn")
+  .addEventListener("click", () => downloadDemoReport("daily"));
+
+document.getElementById("downloadMonthlyReportBtn")
+  .addEventListener("click", () => downloadDemoReport("monthly"));
+
+// Darshan Rides Firebase Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/darshan-rides/firebase-messaging-sw.js")
+    .then((registration) => {
+      console.log("✅ Service Worker Registered", registration);
+    })
+    .catch((error) => {
+      console.error("❌ Service Worker Error:", error);
+    });
+}
+
+// START
+loadVehicles();
+// 📱 PUSH NOTIFICATION PERMISSION
+
+const enablePushBtn = document.getElementById("enablePushBtn");
+if (enablePushBtn) enablePushBtn.addEventListener("click", async () => {
+
+  const status = document.getElementById("pushStatus");
+
+  if (!auth.currentUser) {
+    status.textContent = "❌ पहले Login करें।";
+    return;
+  }
+
+  if (!("Notification" in window)) {
+    status.textContent = "❌ Browser Notification सपोर्ट नहीं करता।";
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      status.textContent = "❌ Notification की अनुमति नहीं मिली।";
+      return;
+    }
+
+    const supported = await isSupported();
+
+    if (!supported) {
+      status.textContent = "❌ Push Notification सपोर्ट नहीं है।";
+      return;
+    }
+
+    const messaging = getMessaging(app);
+
+    const registration = await navigator.serviceWorker.register(
+      "/darshan-rides/firebase-messaging-sw.js"
+    );
+
+    const token = await getToken(messaging, {
+      vapidKey: "BG1nXeTmJcT9IEWqHiA_uA5GW59Z-oW2ujXKY5wH2CuICFz23ZeboOReMKv13xZW1OFxZZu71ibsmUtGj6SwZ6Q",
+      serviceWorkerRegistration: registration
+    });
+
+    if (token) {
+  await setDoc(doc(db, "adminPushTokens", auth.currentUser.uid), {
+    uid: auth.currentUser.uid,
+    token: token,
+    updatedAt: serverTimestamp()
+  });
+
+  status.textContent = "✅ Admin Token Firebase में सेव हो गया!";
+  console.log("FCM Token:", token);
+    }
+    else {
+      status.textContent = "❌ Token नहीं मिला।";
+    }
+
+  } catch (error) {
+    status.textContent = "❌ Error: " + error.message;
+    console.error("Push Notification Error:", error);
+  }
+
+});
+// MOBILE OTP LOGIN
+
+let confirmationResult = null;
+let recaptchaVerifier = null;
+
+const otpStatus = document.getElementById("otpStatus");
+const sendOtpBtn = document.getElementById("sendOtpBtn");
+const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+
+sendOtpBtn.addEventListener("click", async () => {
+
+  const phone = document.getElementById("phoneNumber")
+    .value.trim();
+
+  if (!/^\+91[6-9]\d{9}$/.test(phone)) {
+    otpStatus.textContent =
+      "❌ मोबाइल नंबर +919876543210 के फॉर्मेट में लिखें।";
+    return;
+  }
+
+  sendOtpBtn.disabled = true;
+  otpStatus.textContent = "OTP भेजा जा रहा है...";
+
+  try {
+
+    if (!recaptchaVerifier) {
+      recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        { size: "normal" }
+      );
+
+      await recaptchaVerifier.render();
+    }
+
+    confirmationResult = await signInWithPhoneNumber(
+      auth,
+      phone,
+      recaptchaVerifier
+    );
+
+    otpStatus.textContent =
+      "✅ OTP भेज दिया गया है।";
+
+  } catch (error) {
+
+    console.error(error);
+
+    otpStatus.textContent =
+      "❌ OTP Error: " + (error.code || error.message);
+
+    if (recaptchaVerifier) {
+      try {
+        recaptchaVerifier.clear();
+      } catch (_) {}
+      recaptchaVerifier = null;
+    }
+
+  } finally {
+    sendOtpBtn.disabled = false;
+  }
+
+});
+
+verifyOtpBtn.addEventListener("click", async () => {
+
+  if (!confirmationResult) {
+    otpStatus.textContent = "❌ पहले OTP भेजें।";
+    return;
+  }
+
+  const code = document.getElementById("otpCode")
+    .value.trim();
+
+  if (!/^\d{6}$/.test(code)) {
+    otpStatus.textContent = "❌ सही 6 अंकों का OTP डालें।";
+    return;
+  }
+
+  verifyOtpBtn.disabled = true;
+  otpStatus.textContent = "OTP Verify हो रहा है...";
+
+  try {
+
+    await confirmationResult.confirm(code);
+
+    otpStatus.textContent =
+      "✅ मोबाइल नंबर से Login सफल!";
+
+    confirmationResult = null;
+
+  } catch (error) {
+
+    console.error(error);
+
+    otpStatus.textContent =
+      "❌ Verify Error: " + (error.code || error.message);
+
+  } finally {
+    verifyOtpBtn.disabled = false;
+  }
+
+});
+  // OWNER DASHBOARD - MY VEHICLE BOOKINGS
+
+document.getElementById("ownerBookingsBtn")
+.addEventListener("click", async () => {
+
+  const box = document.getElementById("ownerBookingsList");
+  const user = auth.currentUser;
+
+  if (!user) {
+    box.textContent = "❌ पहले Login करें।";
+    return;
+  }
+
+  box.textContent = "बुकिंग लोड हो रही हैं...";
+
+  try {
+
+    // मालिक की गाड़ियाँ खोजें
+    const vehicleQuery = query(
+      collection(db, "vehicles"),
+      where("ownerId", "==", user.uid)
+    );
+
+    const vehicleSnapshot = await getDocs(vehicleQuery);
+
+    box.replaceChildren();
+
+    if (vehicleSnapshot.empty) {
+      box.textContent = "आपकी कोई Approved गाड़ी नहीं मिली।";
+      return;
+    }
+
+    const vehicleIds = new Set(
+      vehicleSnapshot.docs.map(item => item.id)
+    );
+
+// OWNER VEHICLE AVAILABILITY CONTROL
+const availabilityTitle = document.createElement("h3");
+availabilityTitle.textContent = "🚗 मेरी गाड़ियों की उपलब्धता";
+box.appendChild(availabilityTitle);
+
+vehicleSnapshot.docs.forEach((vehicleDoc) => {
+
+  const vehicle = vehicleDoc.data();
+
+  const row = document.createElement("div");
+  row.className = "vehicle-card";
+
+  const name = document.createElement("p");
+  name.textContent =
+    "🚗 " + (vehicle.vehicleName || "गाड़ी");
+
+  const button = document.createElement("button");
+
+  function refreshButton(available) {
+    button.textContent = available
+      ? "🟢 Available — बंद करें"
+      : "🔴 Unavailable — चालू करें";
+
+    button.style.background =
+      available ? "#228b22" : "#cc3333";
+  }
+
+  let available = vehicle.available !== false;
+
+  refreshButton(available);
+
+  button.addEventListener("click", async () => {
+
+    button.disabled = true;
+
+    try {
+
+      const newValue = !available;
+
+      await updateDoc(
+        doc(db, "vehicles", vehicleDoc.id),
+        { available: newValue }
+      );
+
+      available = newValue;
+      refreshButton(available);
+
+      alert(
+        available
+          ? "✅ गाड़ी Available हो गई!"
+          : "🚫 गाड़ी Unavailable हो गई!"
+      );
+
+    } catch (error) {
+
+      alert(
+        "❌ Error: " +
+        (error.code || error.message)
+      );
+
+    } finally {
+      button.disabled = false;
+    }
+
+  });
+
+  row.append(name, button);
+  box.appendChild(row);
+
+});
+    // हर गाड़ी की Booking अलग से खोजें
+let totalBookings = 0;
+
+// 🔔 नई Pending Bookings की गिनती
+let pendingBookings = 0;
+
+    for (const vehicleId of vehicleIds) {
+
+      const bookingQuery = query(
+        collection(db, "bookings"),
+        where("vehicleId", "==", vehicleId)
+      );
+const ownedVehicle = vehicleSnapshot.docs.find(
+  vehicleDoc => vehicleDoc.id === vehicleId &&
+  vehicleDoc.data().ownerId === user.uid
+);
+
+if (!ownedVehicle) {
+  continue;
+}
+      const bookingSnapshot = await getDocs(bookingQuery);
+
+      bookingSnapshot.forEach(item => {
+
+        const data = item.data();
+// 🔔 Pending Booking की गिनती
+if (data.status === "pending") {
+  pendingBookings++;
+}
+        const card = document.createElement("div");
+        card.className = "vehicle-card";
+
+        const details = document.createElement("p");
+
+        details.textContent =
+  "🚗 गाड़ी: " + (data.vehicleName || "") +
+  " | 📍 Pickup: " + (data.pickup || "") +
+  " | 🏁 Drop: " + (data.drop || "") +
+  " | 📏 दूरी: " +
+  (data.distanceKm != null
+    ? data.distanceKm + " KM"
+    : "उपलब्ध नहीं") +
+  " | 💰 कुल किराया: " +
+  (data.totalFare != null
+    ? "₹" + Number(data.totalFare).toFixed(2)
+    : "उपलब्ध नहीं") +
+  " | Status: " + (data.status || "");
+
+        card.appendChild(details);
+
+// OWNER BOOKING ACCEPT / REJECT
+if (data.status === "pending") {
+
+  ["approved", "rejected"].forEach((decision) => {
+
+    const button = document.createElement("button");
+
+    button.textContent =
+      decision === "approved"
+        ? "✅ Accept Booking"
+        : "❌ Reject Booking";
+
+    button.addEventListener("click", async () => {
+
+      const buttons = card.querySelectorAll("button");
+
+      buttons.forEach(btn => {
+        btn.disabled = true;
+      });
+
+      try {
+
+        await updateDoc(
+          doc(db, "bookings", item.id),
+          {
+            status: decision
+          }
+        );
+
+        details.textContent =
+  "🚗 गाड़ी: " + (data.vehicleName || "") +
+  " | 📍 Pickup: " + (data.pickup || "") +
+  " | 🏁 Drop: " + (data.drop || "") +
+  " | 📏 दूरी: " +
+  (data.distanceKm != null
+    ? data.distanceKm + " KM"
+    : "उपलब्ध नहीं") +
+  " | 💰 कुल किराया: " +
+  (data.totalFare != null
+    ? "₹" + Number(data.totalFare).toFixed(2)
+    : "उपलब्ध नहीं") +
+  " | Status: " + decision;
+
+        buttons.forEach(btn => btn.remove());
+
+        alert(
+          decision === "approved"
+            ? "✅ Booking Accept हो गई!"
+            : "❌ Booking Reject हो गई!"
+        );
+
+      } catch (error) {
+
+        console.error(error);
+
+        alert(
+          "❌ Error: " +
+          (error.code || error.message)
+        );
+
+        buttons.forEach(btn => {
+          btn.disabled = false;
+        });
+
+      }
+
+    });
+
+    card.appendChild(button);
+
+  });
+
+}
+
+box.appendChild(card);
+
+totalBookings++;
+// APPROVED BOOKING - CUSTOMER PHONE AND CALL BUTTON
+if (data.status === "approved") {
+
+  const phoneInfo = document.createElement("p");
+  phoneInfo.textContent = "📞 ग्राहक का नंबर लोड हो रहा है...";
+  card.appendChild(phoneInfo);
+
+  getDoc(doc(db, "bookingContacts", item.id))
+    .then((contactSnap) => {
+
+      const customerPhone = contactSnap.exists()
+        ? contactSnap.data().customerPhone
+        : null;
+
+      if (!/^[6-9][0-9]{9}$/.test(customerPhone || "")) {
+        phoneInfo.textContent =
+          "📞 ग्राहक का मोबाइल नंबर उपलब्ध नहीं है।";
+        return;
+      }
+
+      phoneInfo.textContent =
+        "📞 ग्राहक का मोबाइल नंबर: " + customerPhone;
+
+      const callBtn = document.createElement("a");
+      callBtn.href = "tel:+91" + customerPhone;
+      callBtn.textContent = "📞 Call Now";
+
+      callBtn.style.display = "inline-block";
+      callBtn.style.padding = "12px 18px";
+      callBtn.style.background = "#ff8c00";
+      callBtn.style.color = "white";
+      callBtn.style.borderRadius = "8px";
+      callBtn.style.textDecoration = "none";
+
+      card.appendChild(callBtn);
+callBtn.style.setProperty("display", "inline-block", "important");
+    })
+    .catch((error) => {
+      console.error(error);
+      phoneInfo.textContent =
+        "❌ नंबर नहीं दिख सका: " +
+        (error.code || error.message);
+    });
+
+          }
+      });
+    }
+// 🔔 OWNER PENDING BOOKING NOTIFICATION
+const notification = document.createElement("div");
+
+notification.className = "vehicle-card";
+
+notification.style.background = "#fff3cd";
+notification.style.border = "2px solid orange";
+
+notification.textContent = pendingBookings > 0
+  ? "🔔 आपके पास " + pendingBookings + " Pending Bookings हैं!"
+  : "✅ अभी कोई Pending Booking नहीं है।";
+
+box.prepend(notification);
+    if (totalBookings === 0) {
+  const noBookings = document.createElement("p");
+  noBookings.textContent = "अभी आपकी गाड़ियों की कोई Booking नहीं है।";
+  box.appendChild(noBookings);
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+    box.textContent =
+      "❌ Error: " + (error.code || error.message);
+
+  }
+
+});
+  // DARSHAN RIDES - FARE CALCULATOR
 
 document.getElementById("calculateFareBtn")
 .addEventListener("click", () => {
@@ -1731,168 +2356,48 @@ document.getElementById("calculateFareBtn")
     document.getElementById("farePerKm").value
   );
 
-  const result =
-    document.getElementById("fareResult");
+  const result = document.getElementById("fareResult");
 
-  if (
-    !Number.isFinite(distance) ||
-    !Number.isFinite(rate) ||
-    distance <= 0 ||
-    rate <= 0
-  ) {
+  if (distance <= 0 || rate <= 0) {
     result.textContent =
       "❌ सही दूरी और प्रति KM किराया भरें।";
     return;
   }
 
-  const total = distance * rate;
+  const totalFare = distance * rate;
 
   result.textContent =
-    "💰 कुल अनुमानित किराया: ₹" +
-    total.toFixed(2);
+    "💰 अनुमानित कुल किराया: ₹" +
+    totalFare.toFixed(2);
 
 });
-
-// AUTH STATE
-
-onAuthStateChanged(auth, (user) => {
-
-  const authStatus =
-    document.getElementById("authStatus");
-
-  if (user) {
-
-    authStatus.textContent =
-      "✅ Login: " + user.email;
-
-    document.getElementById("logoutBtn")
-      .style.display = "inline-block";
-
-    document.getElementById("loginBtn")
-      .style.display = "none";
-
-    document.getElementById("signupBtn")
-      .style.display = "none";
-
-  } else {
-
-    authStatus.textContent =
-      "आप Login नहीं हैं।";
-
-    document.getElementById("logoutBtn")
-      .style.display = "none";
-
-    document.getElementById("loginBtn")
-      .style.display = "inline-block";
-
-    document.getElementById("signupBtn")
-      .style.display = "inline-block";
-
-  }
-
-});
-
-// LOGIN
-
-document.getElementById("loginBtn")
-.addEventListener("click", async () => {
-
-  const email =
-    document.getElementById("email").value.trim();
-
-  const password =
-    document.getElementById("password").value;
-
-  if (!email || !password) {
-    alert("Email और Password भरें।");
-    return;
-  }
-
-  try {
-
-    await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-
-    alert("✅ Login Successful!");
-
-  } catch (error) {
-
-    alert(
-      "❌ Login Error: " +
-      (error.code || error.message)
-    );
-
-  }
-
-});
-
-// SIGNUP
-
-document.getElementById("signupBtn")
-.addEventListener("click", async () => {
-
-  const email =
-    document.getElementById("email").value.trim();
-
-  const password =
-    document.getElementById("password").value;
-
-  if (!email || password.length < 6) {
-    alert("सही Email और कम से कम 6 अक्षर का Password भरें।");
-    return;
-  }
-
-  try {
-
-    await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-
-    alert("✅ Account बन गया!");
-
-  } catch (error) {
-
-    alert(
-      "❌ Signup Error: " +
-      (error.code || error.message)
-    );
-
-  }
-
-});
-
-// LOGOUT
-
-document.getElementById("logoutBtn")
-.addEventListener("click", async () => {
-
-  try {
-
-    await signOut(auth);
-
-    alert("✅ Logout Successful!");
-
-  } catch (error) {
-
-    alert(
-      "❌ Logout Error: " +
-      (error.code || error.message)
-    );
-
-  }
-
-});
-
-// LOAD VEHICLES ON PAGE OPEN
-
-loadVehicles();
-
 </script>
+<!-- OneSignal Push Notification -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 
+<script>
+// Show otherwise-hidden startup errors on the page so Firebase setup can be diagnosed on mobile.
+window.addEventListener("error", function (event) {
+  const status = document.getElementById("firebaseStatus");
+  if (status) status.textContent = "❌ JavaScript Error: " + (event.message || "अज्ञात त्रुटि");
+});
+window.addEventListener("unhandledrejection", function (event) {
+  const status = document.getElementById("firebaseStatus");
+  const reason = event.reason;
+  if (status) status.textContent = "❌ Startup Error: " + (reason && (reason.message || reason.code) || String(reason));
+});
+
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: "53cf96e4-92e3-4f44-ba5a-31aa6dadb711",
+    serviceWorkerPath: "/darshan-rides/OneSignalSDKWorker.js",
+    serviceWorkerParam: {
+      scope: "/darshan-rides/"
+    }
+  });
+});
+</script>
 </body>
 </html>
