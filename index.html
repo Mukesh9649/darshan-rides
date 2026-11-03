@@ -843,7 +843,7 @@ async function loadVehicles(searchCity = "") {
 
       const bookBtn = document.createElement("button");
       bookBtn.textContent = "📅 Book Now";
-// VEHICLE AVAILABILITY
+      // VEHICLE AVAILABILITY
 if (vehicle.available === false) {
   bookBtn.textContent = "🚫 Unavailable";
   bookBtn.disabled = true;
@@ -1250,6 +1250,7 @@ await setDoc(
     vehicleType: data.vehicleType,
     city: data.city,
     pricePerKm: data.pricePerKm,
+    ownerPhone: data.ownerPhone,
     available: true
   }
 );
@@ -1382,29 +1383,6 @@ if (data.status === "approved") {
        phoneInfo.textContent =
   "📞 गाड़ी मालिक का मोबाइल नंबर: " + ownerPhone;
 
-// CUSTOMER PHONE AND CALL BUTTON
-if (/^[6-9][0-9]{9}$/.test(customerPhone || "")) {
-
-  phoneInfo.textContent =
-    "📞 ग्राहक का मोबाइल नंबर: " + customerPhone;
-
-  const callBtn = document.createElement("a");
-  callBtn.href = "tel:+91" + customerPhone;
-  callBtn.textContent = "📞 ग्राहक को Call करें";
-
-  callBtn.style.display = "inline-block";
-  callBtn.style.padding = "12px 18px";
-  callBtn.style.background = "#ff8c00";
-  callBtn.style.color = "white";
-  callBtn.style.borderRadius = "8px";
-  callBtn.style.textDecoration = "none";
-
-  card.appendChild(callBtn);
-
-} else {
-  phoneInfo.textContent =
-    "📞 ग्राहक का नंबर उपलब्ध नहीं है।";
-}
   }
     })
     .catch((error) => {
@@ -1526,32 +1504,6 @@ if (decision === "approved") {
     { merge: true }
   );
 }        
-// SAVE OWNER PHONE AFTER BOOKING APPROVAL
-if (decision === "approved") {
-
-  const ownerRequestSnap = await getDoc(
-  doc(db, "vehicleRequests", data.vehicleId)
-);
-
-  if (!ownerRequestSnap.exists()) {
-    throw new Error("Owner record not found");
-  }
-
-  const ownerPhone = ownerRequestSnap.data().ownerPhone;
-
-  if (!/^[6-9][0-9]{9}$/.test(ownerPhone)) {
-    throw new Error("Owner phone invalid");
-  }
-
-  await updateDoc(
-    doc(db, "bookingContacts", item.id),
-    {
-      ownerPhone: ownerPhone
-    }
-  );
-
-  console.log("✅ Owner phone saved securely");
-  }
               details.textContent += " | नया Status: " + decision;
 
               card.querySelectorAll("button")
@@ -1616,14 +1568,14 @@ const now = new Date();
 
 const todayKey = [
   now.getFullYear(),
-  now.getMonth(),
-  now.getDate()
+    now.getDate()
 ].join("-");
 
 const monthKey = [
   now.getFullYear(),
   now.getMonth()
 ].join("-");
+
     snapshot.forEach(item => {
 
       const data = item.data();
